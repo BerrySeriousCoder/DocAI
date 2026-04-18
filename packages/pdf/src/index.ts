@@ -1,4 +1,3 @@
-// Public API — types only (initial scaffold)
 export type {
     TextItemPosition,
     PagePositionData,
@@ -8,3 +7,11 @@ export type {
     CompressedPositionIndex,
     Logger,
 } from './types.js';
+
+export { compressIndex, decompressIndex } from './compression.js';
+
+export {
+    resolveHighlight,
+    getSpansForHighlight,
+    findExactTextSpans,
+} from './highlight-resolver.js';

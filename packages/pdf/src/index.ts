@@ -8,6 +8,9 @@ export type {
     Logger,
 } from './types.js';
 
+export { extractPdfFromPath, extractPdfFromBuffer } from './pdf-extractor.js';
+export type { ExtractorOptions } from './pdf-extractor.js';
+
 export { compressIndex, decompressIndex } from './compression.js';
 
 export {

@@ -11,10 +11,16 @@ export type {
 export { extractPdfFromPath, extractPdfFromBuffer } from './pdf-extractor.js';
 export type { ExtractorOptions } from './pdf-extractor.js';
 
-export { compressIndex, decompressIndex } from './compression.js';
+export {
+    buildPositionIndex,
+    extractAndIndex,
+    extractAndIndexBuffer,
+} from './pdf-position-index.js';
 
 export {
     resolveHighlight,
     getSpansForHighlight,
     findExactTextSpans,
 } from './highlight-resolver.js';
+
+export { compressIndex, decompressIndex } from './compression.js';

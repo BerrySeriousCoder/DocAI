@@ -1,0 +1,8 @@
+# Python dependencies for PDF extraction
+# Install with: pip install -r requirements.txt
+
+# Pinned: v1.27+ uses a new layout engine by default that drops the
+# `words` key from page_chunks. We bypass it via pymupdf_rag but pin
+# the major range to avoid silent API breakage.
+pymupdf4llm>=0.2.0,<2.0.0
+pymupdf_layout>=1.26.0

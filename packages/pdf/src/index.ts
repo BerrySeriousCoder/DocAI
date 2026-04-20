@@ -1,3 +1,7 @@
+// =============================================================================
+// docai-highlight — Public API
+// =============================================================================
+
 export type {
     TextItemPosition,
     PagePositionData,
@@ -24,3 +28,11 @@ export {
 } from './highlight-resolver.js';
 
 export { compressIndex, decompressIndex } from './compression.js';
+
+export { initBackendConfig, getConfig, getRequiredConfig } from './config.js';
+
+export { validateToken, checkRateLimit, getClientId } from './auth.js';
+
+export { streamLLMResponse, getLLMStructuredResponse } from './llm.js';
+export type { ModelProvider, LLMStreamOptions, DocumentAnswer } from './llm.js';
+export { DocumentAnswerSchema } from './llm.js';

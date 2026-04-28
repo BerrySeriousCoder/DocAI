@@ -1,8 +1,8 @@
-# How DocAI / `@docai/pdf` Works
+# How Ocular / `@ocular/pdf` Works
 
 A deep technical explanation of the full pipeline: extraction → AI context → coordinate resolution → highlighting.
 
-Implementation lives in **`packages/pdf`** (`@docai/pdf`). The **DocAI** Next.js demo consumes it from **`apps/web`** (API routes + UI).
+Implementation lives in **`packages/pdf`** (`@ocular/pdf`). The **Ocular** Next.js demo consumes it from **`apps/web`** (API routes + UI).
 
 ---
 
@@ -202,7 +202,7 @@ Large indices can be shrunk with **`compressIndex`** / **`decompressIndex`** (~4
 |----------|----------|-------|-----------|
 | Search PDF for AI text | Low (paraphrasing breaks it) | Fast | 0 |
 | Ask LLM for page/line numbers | Medium (hallucination risk) | Slow | 2× |
-| **DocAI / `@docai/pdf` (this repo)** | **High (multi-tier matching)** | **Fast** | **1×** for the Q&A |
+| **Ocular / `@ocular/pdf` (this repo)** | **High (multi-tier matching)** | **Fast** | **1×** for the Q&A |
 
 Advantages:
 

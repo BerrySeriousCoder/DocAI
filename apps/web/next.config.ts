@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
       canvas: { browser: "" },
     },
   },
-  serverExternalPackages: ["child_process", "@docai/pdf"],
+  serverExternalPackages: ["child_process", "@ocular/pdf"],
 };
 
 export default nextConfig;

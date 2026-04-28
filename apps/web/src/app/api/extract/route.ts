@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateToken, checkRateLimit, getClientId, extractAndIndexBuffer } from "@docai/pdf";
+import { validateToken, checkRateLimit, getClientId, extractAndIndexBuffer } from "@ocular/pdf";
 
 // In-memory store for position indices (keyed by ID)
 const indexStore = new Map<string, unknown>();
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
         const buffer = Buffer.from(await file.arrayBuffer());
         
-        // Run the extractor (uses default pythonDir from @docai/pdf package)
+        // Run the extractor (uses default pythonDir from @ocular/pdf package)
         const index = await extractAndIndexBuffer(buffer);
 
         // Store in memory

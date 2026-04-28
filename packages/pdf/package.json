@@ -1,5 +1,5 @@
 {
-    "name": "@docai/pdf",
+    "name": "@ocular/pdf",
     "version": "0.1.0",
     "private": true,
     "description": "PDF extraction, highlight resolution, and LLM integration library",

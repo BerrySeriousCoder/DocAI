@@ -1,5 +1,5 @@
 // =============================================================================
-// docai-highlight — Highlight Resolver
+// Ocular — Highlight Resolver
 //
 // The core innovation: deterministically maps AI-generated text back to exact
 // document coordinates, using a 3-tier matching strategy.

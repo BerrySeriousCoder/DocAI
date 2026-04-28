@@ -1,5 +1,5 @@
 // =============================================================================
-// docai-highlight — Position Index Compression
+// Ocular — Position Index Compression
 //
 // Serialize/deserialize position indices for efficient storage and transport.
 // Spans are stored as compact tuples: [text, x, y, width, height, charOffset]

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { validateToken, checkRateLimit, getClientId, getLLMStructuredResponse, resolveHighlight, getSpansForHighlight } from "@docai/pdf";
-import type { ModelProvider, PdfPositionIndex } from "@docai/pdf";
+import { validateToken, checkRateLimit, getClientId, getLLMStructuredResponse, resolveHighlight, getSpansForHighlight } from "@ocular/pdf";
+import type { ModelProvider, PdfPositionIndex } from "@ocular/pdf";
 import { getStoredIndex } from "../extract/route";
 
 export async function POST(request: NextRequest) {

@@ -1,5 +1,5 @@
 {
-  "name": "docai-highlight",
+  "name": "ocular",
   "private": true,
   "packageManager": "bun@1.2.5",
   "workspaces": [

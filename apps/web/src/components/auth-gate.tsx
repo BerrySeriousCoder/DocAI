@@ -13,7 +13,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     // Check localStorage after mount to avoid hydration mismatch
     useEffect(() => {
-        const stored = localStorage.getItem("docai_token");
+        const stored = localStorage.getItem("ocular_token");
         if (stored) setAuthenticated(true);
         setMounted(true);
     }, [setAuthenticated]);
@@ -32,7 +32,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             const data = await res.json();
 
             if (data.valid) {
-                localStorage.setItem("docai_token", token.trim());
+                localStorage.setItem("ocular_token", token.trim());
                 setAuthenticated(true);
             } else {
                 setError("Invalid access token");
@@ -53,7 +53,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                         <Lock className="w-6 h-6 text-[var(--accent)]" />
                     </div>
                     <div className="text-center">
-                        <h2 className="font-semibold text-lg">docai-highlight</h2>
+                        <h2 className="font-semibold text-lg">Ocular</h2>
                         <p className="text-sm text-[var(--text-muted)] mt-1">Enter the access token to continue</p>
                     </div>
 

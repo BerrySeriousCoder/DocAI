@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "docai-highlight — AI Document Highlighting",
+  title: "Ocular — AI Document Highlighting",
   description: "Upload a PDF, ask questions, and see AI answers highlighted in real-time on the document.",
 };
 

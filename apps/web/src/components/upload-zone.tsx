@@ -9,7 +9,7 @@ export default function UploadZone() {
     const [isDragging, setIsDragging] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const authToken = typeof window !== "undefined" ? localStorage.getItem("docai_token") : null;
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("ocular_token") : null;
 
     const handleFile = useCallback(async (file: File) => {
         if (file.type !== "application/pdf") {

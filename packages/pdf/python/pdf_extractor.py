@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-docai-highlight — PDF Extractor (PyMuPDF4LLM)
+Ocular — PDF Extractor (PyMuPDF4LLM)
 
 Produces TWO representations from a single extraction pass:
   1. LLM-friendly markdown text with [PAGE_X] markers
@@ -274,7 +274,7 @@ def extract_pdf(pdf_path: str | None = None, pdf_bytes: bytes | None = None) -> 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="docai-highlight: Extract PDF to markdown + anchor index"
+        description="ocular: Extract PDF to markdown + anchor index"
     )
     parser.add_argument("pdf_path", nargs="?", help="Path to PDF file")
     parser.add_argument("--stdin", action="store_true", help="Read base64 PDF from stdin")

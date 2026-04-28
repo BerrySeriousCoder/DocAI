@@ -1,10 +1,10 @@
-# docai-highlight
+# Ocular
 
 > Extract text + positions from PDFs, feed to any LLM, and resolve AI responses back to exact document coordinates for highlighting.
 
 The core problem: when an AI reads a PDF and generates insights, how do you highlight those insights back in the original document — especially when the AI paraphrases, reorders, or uses bullet points?
 
-**docai-highlight** solves this with a single-extraction, dual-representation architecture that requires no second LLM call. The reusable TypeScript implementation in this repo lives in the **`@docai/pdf`** workspace package.
+**Ocular** solves this with a single-extraction, dual-representation architecture that requires no second LLM call. The reusable TypeScript implementation in this repo lives in the **`@ocular/pdf`** workspace package.
 
 ## Repository layout
 
@@ -12,10 +12,10 @@ This repo is a **Turborepo**-style monorepo ([`turbo.json`](./turbo.json), root 
 
 | Path | Role |
 |------|------|
-| **`packages/pdf`** (`@docai/pdf`) | PDF extraction (Python + PyMuPDF), position index, highlight resolver, compression, and optional LLM/auth helpers used by API routes. |
-| **`apps/web`** | **DocAI** — Next.js demo: upload a PDF, ask questions, and see highlights in the viewer. |
+| **`packages/pdf`** (`@ocular/pdf`) | PDF extraction (Python + PyMuPDF), position index, highlight resolver, compression, and optional LLM/auth helpers used by API routes. |
+| **`apps/web`** | **Ocular** — Next.js demo: upload a PDF, ask questions, and see highlights in the viewer. |
 
-The library is what you import as `@docai/pdf`. The web app depends on it via `"@docai/pdf": "workspace:*"`.
+The library is what you import as `@ocular/pdf`. The web app depends on it via `"@ocular/pdf": "workspace:*"`.
 
 ## How It Works (TL;DR)
 
@@ -32,12 +32,12 @@ AI quotes ──→ [Multi-tier resolver] ──→ { pageNum, charStart, charEn
                                           → Get bounding boxes → Draw highlights
 ```
 
-## Using `@docai/pdf` in this monorepo
+## Using `@ocular/pdf` in this monorepo
 
 Add the workspace dependency (see [`apps/web/package.json`](./apps/web/package.json)):
 
 ```json
-"@docai/pdf": "workspace:*"
+"@ocular/pdf": "workspace:*"
 ```
 
 ```typescript
@@ -45,7 +45,7 @@ import {
   extractAndIndex,
   resolveHighlight,
   getSpansForHighlight,
-} from '@docai/pdf';
+} from '@ocular/pdf';
 
 // Step 1: Extract PDF → position index
 const index = await extractAndIndex('/path/to/document.pdf');
@@ -95,7 +95,7 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-If `@docai/pdf` is ever published to npm, the same `python/` directory ships under `node_modules/@docai/pdf/python/`.
+If `@ocular/pdf` is ever published to npm, the same `python/` directory ships under `node_modules/@ocular/pdf/python/`.
 
 Alternatively, install PyMuPDF globally:
 
@@ -108,7 +108,7 @@ pip install pymupdf pymupdf4llm
 Secrets and demo flags belong in the **application**, not in the library. For this repo:
 
 - Copy [`apps/web/.env.example`](./apps/web/.env.example) → **`apps/web/.env.local`** and fill in API keys.
-- Next.js loads `.env.local` on the server; **`@docai/pdf` reads `process.env`** (it does not load its own `.env` file).
+- Next.js loads `.env.local` on the server; **`@ocular/pdf` reads `process.env`** (it does not load its own `.env` file).
 
 ## API Reference
 
@@ -148,7 +148,7 @@ Options:
 Word-level bounding boxes for a resolved highlight.
 
 #### `findExactTextSpans(index, searchText, pageNum?): TextItemPosition[]`
-Exact text search across the index (useful for “find in document” features).
+Exact text search across the index (useful for "find in document" features).
 
 ### Storage
 
@@ -208,7 +208,7 @@ bun install
 bun run dev
 ```
 
-This starts the web app and the `@docai/pdf` TypeScript build in watch mode per [`turbo.json`](./turbo.json).
+This starts the web app and the `@ocular/pdf` TypeScript build in watch mode per [`turbo.json`](./turbo.json).
 
 ## Requirements
 

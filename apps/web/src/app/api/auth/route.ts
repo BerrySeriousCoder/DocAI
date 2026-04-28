@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateToken } from "@docai/pdf";
+import { validateToken } from "@ocular/pdf";
 
 export async function POST(request: NextRequest) {
     try {

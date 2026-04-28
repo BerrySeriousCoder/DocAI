@@ -13,7 +13,7 @@ export default function ChatPanel() {
 
     const [input, setInput] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const authToken = typeof window !== "undefined" ? localStorage.getItem("docai_token") : null;
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("ocular_token") : null;
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

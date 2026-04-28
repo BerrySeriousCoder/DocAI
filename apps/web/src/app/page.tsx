@@ -19,7 +19,7 @@ export default function Home() {
         {/* Top Bar */}
         <header className="flex items-center justify-between px-8 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">DocAI</h1>
+            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Ocular</h1>
           </div>
           {hasDocument && (
             <button
@@ -63,7 +63,7 @@ export default function Home() {
                     </span>
                   </h2>
                   <p className="text-lg text-[var(--text-secondary)] leading-relaxed max-w-xl">
-                    DocAI isn't just another document chatbot. It precisely maps the AI's answers back to exact coordinates in your PDF, highlighting the original text in real-time using a deterministic 3-tier matcher.
+                    Ocular isn't just another document chatbot. It precisely maps the AI's answers back to exact coordinates in your PDF, highlighting the original text in real-time using a deterministic 3-tier matcher.
                   </p>
                 </div>
               </div>
@@ -90,7 +90,7 @@ export default function Home() {
                 {/* Header & The Problem */}
                 <div className="space-y-12">
                   <div className="text-center space-y-6 max-w-3xl mx-auto">
-                    <h2 className="text-4xl md:text-6xl font-bold text-[var(--text-primary)] tracking-tight">How DocAI Works</h2>
+                    <h2 className="text-4xl md:text-6xl font-bold text-[var(--text-primary)] tracking-tight">How Ocular Works</h2>
                     <p className="text-[var(--text-secondary)] text-lg md:text-xl leading-relaxed">A deep technical explanation of the full pipeline: extraction → AI context → coordinate resolution → highlighting.</p>
                   </div>
 
@@ -336,7 +336,7 @@ for (const span of spans) {
                             </tr>
                             <tr className="bg-[var(--bg-primary)] relative">
                               <td className="p-4 font-bold text-[var(--text-primary)]">
-                                DocAI Engine <span className="absolute left-0 top-0 bottom-0 w-1 bg-[#27c93f]"></span>
+                                Ocular Engine <span className="absolute left-0 top-0 bottom-0 w-1 bg-[#27c93f]"></span>
                               </td>
                               <td className="p-4 font-medium text-[#27c93f]">High (3-tier fuzzy matching)</td>
                               <td className="p-4 font-medium text-[#27c93f]">Fast</td>
@@ -355,7 +355,7 @@ for (const span of spans) {
                       For Developers
                     </div>
                     <h3 className="text-3xl font-bold text-[var(--text-primary)]">Quick Start</h3>
-                    <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">Use the <code className="text-sm bg-[var(--bg-primary)] px-2 py-0.5 rounded border border-[var(--border-color)]">@docai/pdf</code> library in your own projects.</p>
+                    <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">Use the <code className="text-sm bg-[var(--bg-primary)] px-2 py-0.5 rounded border border-[var(--border-color)]">@ocular/pdf</code> library in your own projects.</p>
                   </div>
                   
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -367,10 +367,10 @@ for (const span of spans) {
                       <CodeSnippet 
                         title="Terminal"
                         code={`# Install the package
-npm install @docai/pdf
+npm install @ocular/pdf
 
 # Python dependencies (for PDF extraction)
-cd node_modules/@docai/pdf/python
+cd node_modules/@ocular/pdf/python
 python3 -m venv venv
 source venv/bin/activate
 pip install pymupdf pymupdf4llm`}
@@ -388,7 +388,7 @@ pip install pymupdf pymupdf4llm`}
   extractAndIndex,
   resolveHighlight,
   getSpansForHighlight,
-} from '@docai/pdf';
+} from '@ocular/pdf';
 
 // 1. Extract PDF → position index
 const index = await extractAndIndex('doc.pdf');

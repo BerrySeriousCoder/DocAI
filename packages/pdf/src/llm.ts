@@ -1,5 +1,5 @@
 /**
- * @docai/backend — LLM Service
+ * @ocular/pdf — LLM Service
  *
  * Unified interface for querying Gemini and GPT models.
  * Supports both streaming text and structured JSON output via Zod schemas.

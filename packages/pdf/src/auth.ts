@@ -1,5 +1,5 @@
 /**
- * @docai/backend — Auth & Rate Limiting
+ * @ocular/pdf — Auth & Rate Limiting
  *
  * Server-side utilities for token validation and request rate limiting.
  * Config is loaded from packages/pdf/.env via initBackendConfig().

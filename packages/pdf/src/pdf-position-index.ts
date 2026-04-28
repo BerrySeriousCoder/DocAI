@@ -1,5 +1,5 @@
 // =============================================================================
-// docai-highlight — PDF Position Index Builder
+// Ocular — PDF Position Index Builder
 //
 // Converts raw Python extraction output into a structured PdfPositionIndex.
 // =============================================================================
@@ -16,8 +16,8 @@ import { extractPdfFromPath, extractPdfFromBuffer, type ExtractorOptions } from 
 
 const defaultLogger: Logger = {
     info: () => { },
-    warn: (msg, meta) => console.warn(`[docai-highlight] ${msg}`, meta || ''),
-    error: (msg, meta) => console.error(`[docai-highlight] ${msg}`, meta || ''),
+    warn: (msg, meta) => console.warn(`[ocular] ${msg}`, meta || ''),
+    error: (msg, meta) => console.error(`[ocular] ${msg}`, meta || ''),
 };
 
 /**
@@ -113,7 +113,7 @@ function buildFullText(pythonFullText: string, pages: PagePositionData[]): strin
  *
  * @example
  * ```ts
- * import { extractAndIndex } from 'docai-highlight';
+ * import { extractAndIndex } from '@ocular/pdf';
  *
  * const index = await extractAndIndex('/path/to/document.pdf');
  *

@@ -1,5 +1,5 @@
 // =============================================================================
-// docai-highlight — PDF Extractor (TypeScript ↔ Python bridge)
+// Ocular — PDF Extractor (TypeScript ↔ Python bridge)
 // =============================================================================
 
 import { spawn } from 'child_process';
@@ -15,8 +15,8 @@ const DEFAULT_PYTHON_DIR = path.resolve(__dirname, '..', 'python');
 
 const defaultLogger: Logger = {
     info: () => { },
-    warn: (msg, meta) => console.warn(`[docai-highlight] ${msg}`, meta || ''),
-    error: (msg, meta) => console.error(`[docai-highlight] ${msg}`, meta || ''),
+    warn: (msg, meta) => console.warn(`[ocular] ${msg}`, meta || ''),
+    error: (msg, meta) => console.error(`[ocular] ${msg}`, meta || ''),
 };
 
 export interface ExtractorOptions {

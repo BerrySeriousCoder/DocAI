@@ -1,5 +1,5 @@
 /**
- * @docai/pdf — Configuration
+ * @ocular/pdf — Configuration
  *
  * Reads environment variables from process.env.
  * The consuming application (e.g., Next.js) is responsible for loading .env files.

@@ -1,51 +1,54 @@
-# How docai-highlight Works
+# How DocAI / `@docai/pdf` Works
 
 A deep technical explanation of the full pipeline: extraction → AI context → coordinate resolution → highlighting.
 
+Implementation lives in **`packages/pdf`** (`@docai/pdf`). The **DocAI** Next.js demo consumes it from **`apps/web`** (API routes + UI).
+
 ---
 
-## The Problem
+## The problem
 
 When you send a PDF to an AI (GPT, Claude, Gemini, etc.), the AI reads **text**. When it responds with insights, findings, or quotes — you want to **highlight those exact passages** on the original PDF.
 
 This is deceptively hard because:
-1. **AI paraphrases** — it rarely quotes text verbatim
-2. **AI reorders** — bullet points don't follow document order  
-3. **AI summarizes** — the response text may be shorter than the source
-4. **PDF text extraction is lossy** — word positions get lost when you extract plain text
 
-The naive approach (search for AI text in PDF) fails for all the above reasons.
+1. **AI paraphrases** — it rarely quotes text verbatim  
+2. **AI reorders** — bullet points don't follow document order  
+3. **AI summarizes** — the response text may be shorter than the source  
+4. **PDF text extraction is lossy** — word positions get lost when you extract plain text only  
+
+The naive approach (search for AI text in the PDF) fails for all of the above.
 
 ---
 
-## The Solution: Single-Extraction Dual-Representation
+## The solution: single-extraction dual representation
 
 The key insight is to extract **two representations from one pass**:
 
 ```
                     ┌──────────────────────────┐
-                    │     PDF Document          │
+                    │     PDF Document         │
                     └────────────┬─────────────┘
                                  │
                     ┌────────────▼─────────────┐
-                    │  Python Extractor         │
+                    │  Python extractor       │
                     │  (PyMuPDF4LLM + fitz)     │
                     │                           │
                     │  Single pass extracts:    │
-                    │  • Markdown text           │
+                    │  • Markdown / page text   │
                     │  • Word bounding boxes     │
-                    │  • Character offsets        │
+                    │  • Character offsets       │
                     └──────┬──────────┬─────────┘
                            │          │
               ┌────────────▼──┐  ┌────▼────────────┐
-              │  fullText      │  │  Position Index  │
-              │  (for the AI)  │  │  (for resolver)  │
+              │  fullText      │  │  Position index │
+              │  (for the AI)  │  │  (for resolver)│
               └────────────────┘  └─────────────────┘
 ```
 
-### Representation 1: `fullText` (AI Context)
+### Representation 1: `fullText` (AI context)
 
-This is what the AI reads. It's markdown with `[PAGE_X]` markers:
+What the model sees — typically with `[PAGE_X]` markers:
 
 ```
 [PAGE_1]
@@ -61,77 +64,42 @@ DELIVERABLES AND MILESTONES
 ...
 ```
 
-The `[PAGE_X]` markers serve a dual purpose:
-- The AI naturally references page numbers in its response
-- You can pass `estimatedPage` to the resolver to speed up matching
+The `[PAGE_X]` markers help the model cite pages in natural language; your app can parse that signal and pass **`estimatedPage`** into `resolveHighlight` so the resolver tries the right page first.
 
-### Representation 2: Position Index
+### Representation 2: Position index
 
-This is the highlight engine. For each page, it stores:
+For each page, the index stores anchor **`text`** plus **`items`**: each word’s text, bounding box, and **`charOffset`** into that page’s anchor string.
 
-```typescript
-{
-  pageNum: 1,
-  width: 595.28,           // Page dimensions (PDF units)
-  height: 841.89,
-  text: "PROJECT OVERVIEW Client: Acme Corp Ltd...",  // Anchor text
-  items: [
-    { text: "PROJECT",   x: 72.5, y: 750.2, width: 45.3, height: 12.0, charOffset: 0 },
-    { text: "OVERVIEW",  x: 120.1, y: 750.2, width: 58.7, height: 12.0, charOffset: 8 },
-    { text: "Client:",   x: 72.5, y: 735.0, width: 42.1, height: 11.0, charOffset: 17 },
-    // ... every word on the page
-  ]
-}
-```
-
-**The critical link**: the `anchor text` is the **single source of truth**. Both the `fullText` (sent to AI) and the `items` (bounding boxes) reference the same character offsets in this text.
+**The critical link:** anchor text is the **single source of truth**. The `fullText` the LLM reads and the resolver’s `page.text` are built from the same ordering so **verbatim** quotes can be located.
 
 ---
 
 ## Phase 1: Extraction (Python)
 
-The Python extractor (`pdf_extractor.py`) uses PyMuPDF4LLM for a single-pass extraction:
+The extractor script is **`packages/pdf/python/pdf_extractor.py`**. It uses PyMuPDF4LLM for a single-pass extraction, then builds per-page anchor text and spans (see the script for the exact `pymupdf4llm.to_markdown` options).
 
-```python
-# One call gets everything
-chunks = pymupdf4llm.to_markdown(
-    input_path,
-    page_chunks=True,     # Per-page chunks
-    extract_words=True,   # Word bounding boxes
-    page_separators=False,
-)
-```
-
-For each page, it then builds the **anchor text** — a deterministic concatenation of all words in reading order:
+Conceptually, after sorting words in reading order, each token is appended with spacing rules and recorded with `x`, flipped `y`, and `char_offset` — the same spirit as:
 
 ```python
 def build_anchor_data(words, page_height):
-    # 1. Sort words by block → line → word → position (deterministic)
     parsed_words.sort(key=lambda w: (block_no, line_no, word_no, y, x))
-    
-    # 2. Concatenate with intelligent spacing
     for word in parsed_words:
-        # Add newlines between lines, spaces between words
-        # Respect no-space-before chars: . , : ; ! ?
-        # Respect no-space-after chars: ( [ { / ₹ $
-        
         spans.append({
             "text": token,
             "x": x0,
-            "y": page_height - y1,   # Flip Y for frontend coordinate system
+            "y": page_height - y1,   # flip Y for web-style coordinates
             "char_offset": char_offset,
         })
-    
     return anchor_text, spans
 ```
 
-**Key design decision**: The `fullText` sent to the AI is built from this **anchor text** (not the markdown). This ensures that when the AI copies text verbatim, it matches exactly what the resolver searches against.
+**Design choice:** the LLM-facing `fullText` is aligned with this anchor text so copied substrings still match what `resolveHighlight` searches.
 
 ---
 
-## Phase 2: AI Context & Structured Output
+## Phase 2: AI context and structured output
 
-The `fullText` from the position index is sent to any LLM. To guarantee reliable highlights, we force the LLM to output structured JSON with an `answer` mapping to an array of verbatim `quotes`:
+The `fullText` from the position index is sent to any LLM. For reliable highlights, enforce structured JSON with **`answer`** and verbatim **`quotes`**:
 
 ```typescript
 const index = await extractAndIndex('policy.pdf');
@@ -158,140 +126,99 @@ const response = await llm.chat({
 });
 ```
 
-The AI naturally produces responses separated from the document text. When it provides the `answer`:
-
-> "The development budget is stated as **$750,000 fixed cost** on page 3"
-
-It will simultaneously provide exact `quotes` it used to formulate that answer: `["$750,000 fixed cost"]`. You feed these verbatim quotes to the resolver.
+Example: the model’s `answer` might say the budget is **$750,000 fixed cost** on page 3; the `quotes` array should contain **exact** substrings from the document, e.g. `["$750,000 fixed cost"]`, which you pass to `resolveHighlight`.
 
 ---
 
-## Phase 3: Highlight Resolution (The Magic)
+## Phase 3: Highlight resolution (multi-tier, no LLM)
 
-The resolver uses a **3-tier matching strategy** — no LLM needed:
+`packages/pdf/src/highlight-resolver.ts` implements **deterministic** matching in order:
 
-### Tier 1: Exact Substring Match
+### Tier 1: Exact substring
 
 ```typescript
-// Fast path: check if the AI text appears verbatim in the anchor text
 const matchIndex = pageText.indexOf(cleanSearch);
 if (matchIndex !== -1) {
   return { pageNum, charStart: matchIndex, charEnd: matchIndex + cleanSearch.length };
 }
 ```
 
-This handles ~70% of cases where the AI quotes directly.
-
-### Tier 2: Case-Insensitive Match
+### Tier 2: Case-insensitive
 
 ```typescript
-// Handle capitalization differences
 const matchIndex = pageText.toLowerCase().indexOf(lowerSearch);
 ```
 
-Catches cases like "Total Budget" vs "total budget".
+### Tier 2.5: Punctuation / whitespace–agnostic
 
-### Tier 3: Word-Level Sliding Window
+Both the quote and the page text are stripped of Unicode punctuation and whitespace; a match maps back to the original character range via a character map. This helps when line breaks or punctuation differ slightly between model output and anchor text.
 
-This is what makes highlighting work even for paraphrased AI responses:
+### Tier 3: Word-level sliding window
 
-```typescript
-// Tokenize both texts into word arrays
-const searchWords = tokenize(aiText);    // ["750,000", "fixed", "cost"]
+The quote is tokenized into words (with light stripping of markdown-ish characters). The resolver slides a window over page words and scores overlap; if **`matchCount / searchWords.length >= minMatchRatio`** (default **0.6**), it accepts the best-scoring window as the highlight range.
 
-// Slide a window over page words
-for (let i = 0; i <= pageWords.length - searchWords.length; i++) {
-  const window = pageWords.slice(i, i + windowSize);
-  const windowSet = new Set(window.map(w => w.word));
-  
-  // Count how many search words appear in this window
-  let matchCount = 0;
-  for (const sw of searchWords) {
-    if (windowSet.has(sw)) matchCount++;
-  }
-  
-  const score = matchCount / searchWords.length;
-  if (score >= 0.6) {  // 60% of words must match
-    return { pageNum, charStart: window[0].start, charEnd: window.last.end };
-  }
-}
-```
+### Page-priority optimization
 
-This works because even when the AI says "the development phase costs $750,000 as a fixed fee", the key words (`750,000`, `fixed`, `cost`) appear in a tight window in the original text.
-
-### Page-Priority Optimization
-
-When the AI mentions a page number (or you know the estimated page), the resolver searches that page first, then neighbors:
-
-```typescript
-const orderedPages = pages.sort((a, b) => {
-  const distA = Math.abs(a.pageNum - estimatedPage);
-  const distB = Math.abs(b.pageNum - estimatedPage);
-  return distA - distB;
-});
-```
-
-This avoids false matches from similar text on other pages.
+When `estimatedPage` is set, pages are sorted by distance to that page before each tier runs — reducing wrong-page matches when the same clause appears multiple times.
 
 ---
 
-## Phase 4: Visual Highlighting
+## Phase 4: Visual highlighting
 
-Once you have a `ResolvedHighlight` for each of your quotes, convert it to bounding boxes:
+Resolve a quote to `{ pageNum, charStart, charEnd }`, then collect spans:
 
 ```typescript
-// Assuming aiQuotes = ["$750,000 fixed cost"]
 const highlight = resolveHighlight(index, aiQuotes[0]);
 const spans = getSpansForHighlight(index, highlight);
-
-// spans = [
-//   { text: "$750,000", x: 150.2, y: 400.1, width: 42.5, height: 11.0 },
-//   { text: "fixed",    x: 195.0, y: 400.1, width: 24.3, height: 11.0 },
-//   { text: "cost",     x: 221.6, y: 400.1, width: 20.7, height: 11.0 },
-// ]
 ```
 
-In your PDF viewer (react-pdf, pdf.js, etc.), draw rectangles at these coordinates:
-
-```typescript
-for (const span of spans) {
-  // Note: y is bottom-up in PDF coords, your viewer may need to flip
-  const screenY = pageHeight - span.y - span.height;
-  drawHighlight(span.x, screenY, span.width, span.height);
-}
-```
+In the viewer (e.g. react-pdf / PDF.js), draw rectangles; remember PDF **y** is often bottom-up relative to the canvas.
 
 ---
 
-## Storage & Compression
+## Storage and compression
 
-Position indices can be large (10-50KB per page). The compression utilities reduce this by ~40%:
-
-```typescript
-// Store
-const compressed = compressIndex(index);
-// Items become tuples: ["text", x, y, w, h, charOffset]
-// instead of: { text: "text", x: ..., y: ..., ... }
-fs.writeFileSync('index.json', JSON.stringify(compressed));
-
-// Restore
-const stored = JSON.parse(fs.readFileSync('index.json', 'utf-8'));
-const index = decompressIndex(stored);
-```
+Large indices can be shrunk with **`compressIndex`** / **`decompressIndex`** (~40% smaller) by encoding span objects as tuples.
 
 ---
 
-## Why This Architecture?
+## Where the code lives
 
-| Approach | Accuracy | Speed | LLM Calls |
+| Concern | Path |
+|--------|------|
+| Python extractor | `packages/pdf/python/pdf_extractor.py`, `requirements.txt` |
+| TS ↔ Python bridge, default `python/` path | `packages/pdf/src/pdf-extractor.ts` |
+| Index builder | `packages/pdf/src/pdf-position-index.ts` |
+| Resolver | `packages/pdf/src/highlight-resolver.ts` |
+| Public exports | `packages/pdf/src/index.ts` |
+| Demo API | `apps/web/src/app/api/extract`, `ask`, `auth` |
+| Demo UI | `apps/web/src/app/page.tsx`, `components/*` |
+
+---
+
+## Why this architecture?
+
+| Approach | Accuracy | Speed | LLM calls |
 |----------|----------|-------|-----------|
 | Search PDF for AI text | Low (paraphrasing breaks it) | Fast | 0 |
-| Ask LLM to return page/line numbers | Medium (hallucination risk) | Slow | 2x |
-| **docai-highlight (this)** | **High (3-tier fuzzy matching)** | **Fast** | **1x** |
+| Ask LLM for page/line numbers | Medium (hallucination risk) | Slow | 2× |
+| **DocAI / `@docai/pdf` (this repo)** | **High (multi-tier matching)** | **Fast** | **1×** for the Q&A |
 
-The key advantages:
-1. **No extra LLM calls** — resolution is deterministic string matching
-2. **Works with any LLM** — no special prompt format required
-3. **Handles paraphrasing** — word-level sliding window catches reworded text
-4. **Single source of truth** — anchor text = AI context = highlight target
-5. **Bounding box accuracy** — word-level coordinates from the PDF engine itself
+Advantages:
+
+1. **No extra LLM** for grounding — resolution is string geometry on the index  
+2. **Model-agnostic** for the answer — any provider that can return structured JSON  
+3. **Paraphrase tolerance** — sliding window when quotes are not perfect  
+4. **Single source of truth** — anchor text ties LLM input to resolver input  
+5. **Box fidelity** — coordinates come from the PDF engine at word granularity  
+
+---
+
+## Limits (be honest in product copy)
+
+- **Scanned PDFs** need OCR before this text pipeline helps.  
+- **Very short quotes** are rejected to avoid spurious matches.  
+- **Complex tables / multi-column** layouts can still mis-order text; stronger layout tools or pre-processing may be needed.  
+- **Figures and images** are out of scope for text-only quoting.  
+
+For environment and demo setup, see **`apps/web/.env.example`** and run **`bun run dev`** from the repo root.

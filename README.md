@@ -4,7 +4,18 @@
 
 The core problem: when an AI reads a PDF and generates insights, how do you highlight those insights back in the original document — especially when the AI paraphrases, reorders, or uses bullet points?
 
-**docai-highlight** solves this with a single-extraction, dual-representation architecture that requires no second LLM call.
+**docai-highlight** solves this with a single-extraction, dual-representation architecture that requires no second LLM call. The reusable TypeScript implementation in this repo lives in the **`@docai/pdf`** workspace package.
+
+## Repository layout
+
+This repo is a **Turborepo**-style monorepo ([`turbo.json`](./turbo.json), root [`package.json`](./package.json)):
+
+| Path | Role |
+|------|------|
+| **`packages/pdf`** (`@docai/pdf`) | PDF extraction (Python + PyMuPDF), position index, highlight resolver, compression, and optional LLM/auth helpers used by API routes. |
+| **`apps/web`** | **DocAI** — Next.js demo: upload a PDF, ask questions, and see highlights in the viewer. |
+
+The library is what you import as `@docai/pdf`. The web app depends on it via `"@docai/pdf": "workspace:*"`.
 
 ## How It Works (TL;DR)
 
@@ -15,48 +26,31 @@ PDF ──→ [Python Extractor] ──→ Two outputs from ONE pass:
   │       → Send to LLM instructing it to return Structured JSON: { answer, quotes }
   │
   └─→ 2. Position index (word bounding boxes + char offsets)
-          → Used by the resolver to map verbatim Quotes → PDF coordinates
+          → Used by the resolver to map verbatim quotes → PDF coordinates
 
-AI Quotes ──→ [3-Tier Resolver] ──→ { pageNum, charStart, charEnd }
+AI quotes ──→ [Multi-tier resolver] ──→ { pageNum, charStart, charEnd }
                                           → Get bounding boxes → Draw highlights
 ```
 
-## Installation
+## Using `@docai/pdf` in this monorepo
 
-```bash
-npm install docai-highlight
+Add the workspace dependency (see [`apps/web/package.json`](./apps/web/package.json)):
+
+```json
+"@docai/pdf": "workspace:*"
 ```
-
-### Python Dependencies
-
-The PDF extraction uses PyMuPDF under the hood. Set up a Python venv:
-
-```bash
-cd node_modules/docai-highlight/python
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-Or install globally:
-
-```bash
-pip install pymupdf pymupdf4llm
-```
-
-## Quick Start
 
 ```typescript
 import {
   extractAndIndex,
   resolveHighlight,
   getSpansForHighlight,
-} from 'docai-highlight';
+} from '@docai/pdf';
 
 // Step 1: Extract PDF → position index
 const index = await extractAndIndex('/path/to/document.pdf');
 
-// Step 2: Extract structured response from LLM (enforce { answer, quotes })
+// Step 2: Structured response from your LLM (enforce { answer, quotes })
 const aiResponse = await yourLLM.chat({
   messages: [{ role: "user", content: `Analyze this document:\n\n${index.fullText}` }],
   response_format: {
@@ -75,21 +69,46 @@ const aiResponse = await yourLLM.chat({
   }
 });
 
-// Step 3: Resolve AI quotes back to PDF coordinates
+// Step 3: Resolve quotes → PDF coordinates
 for (const quote of aiResponse.quotes) {
   const highlight = resolveHighlight(index, quote);
 
   if (highlight) {
-    console.log(`Found "${quote}" on Page ${highlight.pageNum}, chars ${highlight.charStart}-${highlight.charEnd}`);
-    
-    // Step 4: Get bounding boxes for visual highlighting
+    console.log(`Found "${quote}" on page ${highlight.pageNum}, chars ${highlight.charStart}-${highlight.charEnd}`);
+
     const spans = getSpansForHighlight(index, highlight);
-    spans.forEach(span => {
+    spans.forEach((span) => {
       console.log(`Draw rect at (${span.x}, ${span.y}) size ${span.width}x${span.height}`);
     });
   }
 }
 ```
+
+### Python setup (required for extraction)
+
+The Node bridge spawns Python from **`packages/pdf/python/`** (venv + `pdf_extractor.py`). From the repo root:
+
+```bash
+cd packages/pdf/python
+python3 -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+If `@docai/pdf` is ever published to npm, the same `python/` directory ships under `node_modules/@docai/pdf/python/`.
+
+Alternatively, install PyMuPDF globally:
+
+```bash
+pip install pymupdf pymupdf4llm
+```
+
+### Environment variables (Next.js demo)
+
+Secrets and demo flags belong in the **application**, not in the library. For this repo:
+
+- Copy [`apps/web/.env.example`](./apps/web/.env.example) → **`apps/web/.env.local`** and fill in API keys.
+- Next.js loads `.env.local` on the server; **`@docai/pdf` reads `process.env`** (it does not load its own `.env` file).
 
 ## API Reference
 
@@ -99,7 +118,7 @@ for (const quote of aiResponse.quotes) {
 Extract a PDF from a file path and build the position index in one call.
 
 #### `extractAndIndexBuffer(buffer, options?): Promise<PdfPositionIndex>`
-Same as above, but from an in-memory Buffer.
+Same as above, but from an in-memory `Buffer`.
 
 #### `extractPdfFromPath(pdfPath, options?): Promise<PyMuPDFResult>`
 Low-level: run the Python extractor and get raw output.
@@ -110,43 +129,46 @@ Low-level: run the Python extractor from a buffer.
 #### `buildPositionIndex(result): PdfPositionIndex`
 Convert raw Python output into a structured position index.
 
-### Highlight Resolution
+### Highlight resolution
 
 #### `resolveHighlight(index, searchText, options?): ResolvedHighlight | null`
-The core function. Maps a text snippet (from AI output) to exact PDF coordinates using 3-tier matching:
-1. **Exact substring** — handles verbatim quotes
-2. **Case-insensitive** — handles capitalization diffs
-3. **Word-level sliding window** — handles paraphrasing (60% match threshold)
+Maps a text snippet (e.g. a quote from the model) to character offsets on a page using **multi-tier** matching (no second LLM):
+
+1. **Exact substring** on anchor text  
+2. **Case-insensitive** substring  
+3. **Punctuation / whitespace–agnostic** pass (aligns when spacing or punctuation differs)  
+4. **Word-level sliding window** (default: at least **60%** of quote tokens must appear in a window)
 
 Options:
-- `estimatedPage?: number` — prioritize searching near this page
-- `minMatchRatio?: number` — fuzzy match threshold (default: 0.6)
+
+- `estimatedPage?: number` — search pages near this page first (reduces false positives when the same phrase appears twice).
+- `minMatchRatio?: number` — threshold for the sliding-window tier (default: `0.6`).
 
 #### `getSpansForHighlight(index, highlight): TextItemPosition[]`
-Get word-level bounding boxes for a resolved highlight. Use these to draw rectangles on your PDF viewer.
+Word-level bounding boxes for a resolved highlight.
 
 #### `findExactTextSpans(index, searchText, pageNum?): TextItemPosition[]`
-Find all spans matching exact text (useful for search-in-document features).
+Exact text search across the index (useful for “find in document” features).
 
 ### Storage
 
 #### `compressIndex(index): CompressedPositionIndex`
-Compress for storage (~40% smaller). Converts span objects to tuples.
+Compress for storage (~40% smaller). Span objects become compact tuples.
 
 #### `decompressIndex(compressed): PdfPositionIndex`
 Restore from compressed format.
 
-### Configuration
+### Extractor options
 
 ```typescript
 interface ExtractorOptions {
-  pythonDir?: string;   // Path to Python scripts dir
-  pythonBin?: string;   // Path to Python binary
-  logger?: Logger;      // Custom logger (default: console)
+  pythonDir?: string;   // Override path to the `python/` directory (default: next to compiled `dist/`)
+  pythonBin?: string;   // Override Python binary (default: `python` in that venv)
+  logger?: Logger;      // Custom logger
 }
 ```
 
-## Key Types
+## Key types
 
 ```typescript
 interface PdfPositionIndex {
@@ -163,26 +185,36 @@ interface ResolvedHighlight {
 }
 
 interface TextItemPosition {
-  text: string;            // Word content
-  x: number;               // Left edge (PDF units)
-  y: number;               // Bottom edge (PDF units, bottom-up)
+  text: string;
+  x: number;
+  y: number;               // PDF units (bottom-up origin; flip for many web viewers)
   width: number;
   height: number;
   pageNum: number;
-  charOffset: number;      // Position in anchor text
+  charOffset: number;
 }
 ```
 
 ## Architecture
 
-See [HOW_IT_WORKS.md](./HOW_IT_WORKS.md) for the deep technical dive.
+See [HOW_IT_WORKS.md](./HOW_IT_WORKS.md) for the full pipeline.
+
+## Run the demo
+
+From the repository root (Bun + Turbo):
+
+```bash
+bun install
+bun run dev
+```
+
+This starts the web app and the `@docai/pdf` TypeScript build in watch mode per [`turbo.json`](./turbo.json).
 
 ## Requirements
 
-- **Node.js** ≥ 18
-- **Python** ≥ 3.10
-- **pymupdf** ≥ 1.24.0
-- **pymupdf4llm** ≥ 0.0.17
+- **Node.js** ≥ 18  
+- **Bun** (see root `packageManager`) or compatible package manager  
+- **Python** ≥ 3.10 with **pymupdf** and **pymupdf4llm** (see `packages/pdf/python/requirements.txt`)
 
 ## License
 

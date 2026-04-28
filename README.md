@@ -6,6 +6,12 @@ The core problem: when an AI reads a PDF and generates insights, how do you high
 
 **Ocular** solves this with a single-extraction, dual-representation architecture that requires no second LLM call. The reusable TypeScript implementation in this repo lives in the **`@ocular/pdf`** workspace package.
 
+## Demo
+
+[![Demo: Ocular in action](https://img.youtube.com/vi/B8nb9d6QuM8/maxresdefault.jpg)](https://youtu.be/B8nb9d6QuM8)
+
+Short walkthrough of the web app (upload, ask, highlights). If the preview does not load, [watch on YouTube](https://youtu.be/B8nb9d6QuM8).
+
 ## Repository layout
 
 This repo is a **Turborepo**-style monorepo ([`turbo.json`](./turbo.json), root [`package.json`](./package.json)):
